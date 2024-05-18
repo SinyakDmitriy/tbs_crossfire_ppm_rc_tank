@@ -25,8 +25,8 @@
 #define ROLL            2
 #define PITCH           3
 #define YAW             4
-#define SWITCH3WAY_1    5
-#define BUTTON          6
+#define SWITCH3WAY_1    6
+#define BUTTON          5
 #define SWITCH3WAY_2    7     // trim-pot for left/right motor mix  (face trim)
 #define POT             8     // trim-pot on the (front left edge trim)
 // Channel Values
@@ -35,12 +35,13 @@ int rcCH1 = 0; // Left - Right
 int rcCH2 = 0; // Forward - Reverse
 int rcCH3 = 0; // Acceleration
 int rcCH5 = 0; // Spin Control
-bool rcCH6 = 0; // Mode Control
+int rcCH6 = 0; // Mode Control
 
-int throttle      =  0;
-int roll          =  0;
-int pitch         =   0;
-int yaw           =  0;
+int throttle      = 0;
+int roll          = 0;
+int pitch         = 0;
+int yaw           = 0;
+int button       = 0;
 
 // LED Connection
 #define carLED 13
@@ -108,7 +109,7 @@ void mControlB(int mspeed, int mdir) {
 // If the channel is off, return the default value
 int readChannel(int channelInput, int minLimit, int maxLimit, int defaultValue) {
   uint16_t ch =  ppm.read_channel(channelInput);
-  if (ch < 100) return defaultValue;
+  if (ch < 100 || ch > 2500) return defaultValue;
   return map(ch, 1000, 2000, minLimit, maxLimit);
 }
 
@@ -149,7 +150,15 @@ void loop() {
   // Get RC channel values
   throttle      =   readChannel(THROTTLE, 10, 100, 0);
   pitch         =   readChannel(PITCH, -155, 155, 0);
-  roll         =   readChannel(ROLL, -100, 100, 0);
+  roll          =   readChannel(ROLL, -100, 100, 0);
+  button        =   readChannel(BUTTON, 0, 100, 0);
+
+  if(button < 50) {
+    mControlA(0, MotorDirA);
+    mControlB(0, MotorDirB);
+    return;
+  }
+Serial.print("BUTTON -> "); Serial.println(button, DEC);
 
   // Set speeds with channel 3 value
   MotorSpeedA = abs(pitch);
@@ -162,13 +171,13 @@ void loop() {
   if ((pitch > -30 && pitch < 30) && roll >= 0 ) {
     MotorDirA = 0;
     MotorDirB = 1;
-      MotorSpeedB = abs(readChannel(ROLL, -255, 255, 0));
-      MotorSpeedA = abs(readChannel(ROLL, -255, 255, 0));
+      MotorSpeedB = abs(readChannel(ROLL, -200, 200, 0));
+      MotorSpeedA = abs(readChannel(ROLL, -200, 200, 0));
   } else if((pitch > -30 && pitch < 30) && roll < 0) {
     MotorDirA = 1;
     MotorDirB = 0;
-       MotorSpeedB = abs(readChannel(ROLL, -255, 255, 0));
-      MotorSpeedA = abs(readChannel(ROLL, -255, 255, 0));
+       MotorSpeedB = abs(readChannel(ROLL, -200, 200, 0));
+      MotorSpeedA = abs(readChannel(ROLL, -200, 200, 0));
   } else if (pitch >= 30) {
     MotorDirA = 1;
     MotorDirB = 1;
